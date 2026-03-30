@@ -154,14 +154,18 @@
     font-family: 'DM Sans', sans-serif;
     white-space: pre-wrap; word-break: break-word;
   }
-  .copy-btn {
-    font-size: 12px; color: var(--orange); background: var(--orange-light);
+  .output-actions { display: flex; gap: 6px; }
+  .copy-btn, .speak-btn {
+    font-size: 12px; background: var(--orange-light);
     border: 1px solid var(--orange-border); border-radius: 8px;
     padding: 4px 10px; cursor: pointer; font-weight: 600;
     font-family: 'Noto Sans TC', 'DM Sans', sans-serif;
-    transition: all 0.15s;
+    transition: all 0.15s; color: var(--orange);
   }
-  .copy-btn:active { transform: scale(0.95); }
+  .copy-btn:active, .speak-btn:active { transform: scale(0.95); }
+  .speak-btn.speaking {
+    background: var(--orange); color: #fff; border-color: var(--orange-dark);
+  }
 
   .skeleton-wrap { display: flex; flex-direction: column; gap: 10px; }
   .skeleton {
@@ -318,7 +322,10 @@
   <div class="card output-card" id="outputCard" style="display:none">
     <div class="card-label">
       <span class="lang-tag">🇺🇸 California English</span>
-      <button class="copy-btn" onclick="copyResult()">📋 複製</button>
+      <div class="output-actions">
+        <button class="speak-btn" id="speakBtn" onclick="toggleSpeak()">🔊 朗讀</button>
+        <button class="copy-btn" onclick="copyResult()">📋 複製</button>
+      </div>
     </div>
     <div class="output-text" id="outputText"></div>
   </div>
@@ -379,11 +386,15 @@ Rules:
 let apiKey = localStorage.getItem('cali_api_key') || '';
 let history = JSON.parse(localStorage.getItem('cali_history') || '[]');
 let loading = false;
+let translated = false;
 
 // ── Init ──
 function init() {
   updateKeyStatus();
   updateHistoryUI();
+  // Preload TTS voices (iOS Safari needs this)
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
   if (isStandalone()) {
     document.getElementById('pwaHint').style.display = 'none';
   }
@@ -398,10 +409,20 @@ function onInputChange() {
   const val = document.getElementById('inputText').value;
   document.getElementById('charCount').textContent = val.length + ' 字';
   document.getElementById('clearBtn').style.display = val ? 'block' : 'none';
-  document.getElementById('translateBtn').disabled = !val.trim() || !apiKey || loading;
+  const btn = document.getElementById('translateBtn');
+  if (translated) {
+    btn.disabled = false;
+    btn.textContent = '清除，重新翻譯 🔄';
+  } else {
+    btn.disabled = !val.trim() || !apiKey || loading;
+    btn.textContent = '翻譯成加州英文 🏄‍♂️';
+  }
 }
 
 function clearAll() {
+  speechSynthesis.cancel();
+  setSpeakState(false);
+  translated = false;
   document.getElementById('inputText').value = '';
   document.getElementById('outputCard').style.display = 'none';
   onInputChange();
@@ -418,8 +439,17 @@ document.addEventListener('keydown', (e) => {
 
 // ── Translation ──
 async function doTranslate() {
+  // If already translated, clear and reset
+  if (translated) {
+    clearAll();
+    return;
+  }
+
   const input = document.getElementById('inputText').value.trim();
   if (!input || !apiKey || loading) return;
+
+  speechSynthesis.cancel();
+  setSpeakState(false);
 
   loading = true;
   const btn = document.getElementById('translateBtn');
@@ -461,22 +491,25 @@ async function doTranslate() {
     }
 
     const data = await response.json();
-    const translated = data.content
+    const resultText = data.content
       ?.filter(c => c.type === 'text')
       .map(c => c.text)
       .join('\n') || '翻譯失敗，請重試';
 
-    outputText.textContent = translated;
+    outputText.textContent = resultText;
 
     // Save to history
     history.unshift({
       zh: input,
-      en: translated,
+      en: resultText,
       time: new Date().toISOString()
     });
     if (history.length > 30) history = history.slice(0, 30);
     localStorage.setItem('cali_history', JSON.stringify(history));
     updateHistoryUI();
+
+    // Mark as translated
+    translated = true;
 
     // Scroll to result
     outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -486,7 +519,6 @@ async function doTranslate() {
   } finally {
     loading = false;
     btn.disabled = false;
-    btn.innerHTML = '翻譯成加州英文 🏄‍♂️';
     onInputChange();
   }
 }
@@ -505,6 +537,50 @@ function copyResult() {
     document.body.removeChild(ta);
   });
   showToast('✓ 已複製到剪貼簿');
+}
+
+// ── Text-to-Speech ──
+let isSpeaking = false;
+
+function toggleSpeak() {
+  if (isSpeaking) {
+    speechSynthesis.cancel();
+    setSpeakState(false);
+    return;
+  }
+
+  const text = document.getElementById('outputText').textContent;
+  if (!text || text.startsWith('⚠️')) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+
+  // Try to find a US English voice
+  const voices = speechSynthesis.getVoices();
+  const usVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Samantha'))
+    || voices.find(v => v.lang === 'en-US' && !v.name.includes('Google'))
+    || voices.find(v => v.lang === 'en-US');
+  if (usVoice) utterance.voice = usVoice;
+
+  utterance.onstart = () => setSpeakState(true);
+  utterance.onend = () => setSpeakState(false);
+  utterance.onerror = () => setSpeakState(false);
+
+  speechSynthesis.speak(utterance);
+}
+
+function setSpeakState(speaking) {
+  isSpeaking = speaking;
+  const btn = document.getElementById('speakBtn');
+  if (speaking) {
+    btn.textContent = '⏹ 停止';
+    btn.classList.add('speaking');
+  } else {
+    btn.textContent = '🔊 朗讀';
+    btn.classList.remove('speaking');
+  }
 }
 
 // ── Settings ──
@@ -593,6 +669,7 @@ function loadHistory(index) {
   document.getElementById('inputText').value = item.zh;
   document.getElementById('outputCard').style.display = 'block';
   document.getElementById('outputText').textContent = item.en;
+  translated = true;
   onInputChange();
   toggleHistory();
 }
