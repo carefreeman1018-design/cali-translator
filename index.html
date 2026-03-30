@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cali 翻譯">
+<meta name="theme-color" content="#f97316">
+<meta name="description" content="中文翻譯成道地加州美式英文">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23f97316' width='100' height='100' rx='22'/><text y='68' x='50' text-anchor='middle' font-size='52'>🌴</text></svg>">
+<title>Cali Translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #f97316;
+    --orange-dark: #ea580c;
+    --orange-light: #fff7ed;
+    --orange-border: #fed7aa;
+    --slate-900: #0f172a;
+    --slate-700: #334155;
+    --slate-500: #64748b;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50: #f8fafc;
+    --bg: #fafaf9;
+    --card: rgba(255,255,255,0.88);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--slate-900);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .bg-gradient {
+    position: fixed; top: 0; left: 0; right: 0; height: 340px;
+    background: linear-gradient(145deg, #fef3c7 0%, #fed7aa 35%, #fecaca 65%, #e0e7ff 100%);
+    opacity: 0.45; z-index: 0; pointer-events: none;
+  }
+
+  .app {
+    position: relative; z-index: 1;
+    max-width: 520px; margin: 0 auto;
+    padding: calc(20px + var(--safe-top)) 16px calc(32px + var(--safe-bottom));
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; animation: fadeIn 0.4s ease;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 46px; height: 46px; border-radius: 15px;
+    background: linear-gradient(135deg, var(--orange), #f59e0b);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; box-shadow: 0 4px 14px rgba(249,115,22,0.3);
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; color: var(--slate-900); letter-spacing: -0.02em; line-height: 1.2; }
+  .header .sub { font-size: 13px; color: var(--slate-500); font-weight: 500; margin-top: 2px; }
+  .header-right { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    border: 1.5px solid var(--slate-200); background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; transition: all 0.15s;
+    position: relative; backdrop-filter: blur(8px);
+  }
+  .icon-btn:active { transform: scale(0.93); }
+  .icon-btn .badge {
+    position: absolute; top: -4px; right: -4px;
+    background: var(--orange); color: #fff;
+    font-size: 10px; font-weight: 700;
+    min-width: 18px; height: 18px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-radius: 18px; border: 1px solid rgba(226,232,240,0.8);
+    padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    animation: fadeIn 0.35s ease;
+  }
+  .card-label {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .lang-tag { font-size: 13px; font-weight: 600; color: var(--slate-500); letter-spacing: 0.01em; }
+  .clear-btn {
+    font-size: 12px; color: var(--slate-300); background: none;
+    border: none; cursor: pointer; font-weight: 500; padding: 2px 6px;
+    font-family: inherit;
+  }
+
+  textarea {
+    width: 100%; border: none; background: transparent;
+    font-size: 16px; line-height: 1.75; color: var(--slate-900);
+    resize: none; font-family: 'Noto Sans TC', 'DM Sans', sans-serif;
+    min-height: 110px; outline: none;
+  }
+  textarea::placeholder { color: #94a3b8; }
+
+  .input-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--slate-100);
+  }
+  .char-count { font-size: 12px; color: var(--slate-300); font-weight: 500; }
+  .shortcut-hint {
+    font-size: 11px; color: var(--slate-300); font-weight: 500;
+    background: var(--slate-50); padding: 2px 8px; border-radius: 6px;
+  }
+
+  /* ── Translate button ── */
+  .translate-btn {
+    width: 100%; padding: 15px 24px; border-radius: 14px;
+    border: none; background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+    color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s ease; margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(249,115,22,0.3);
+    letter-spacing: 0.01em; font-family: 'Noto Sans TC', 'DM Sans', sans-serif;
+  }
+  .translate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .translate-btn:active:not(:disabled) { transform: scale(0.98); }
+  .translate-btn .loading {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  /* ── Output ── */
+  .output-card {
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(249,115,22,0.15);
+  }
+  .output-text {
+    font-size: 16px; line-height: 1.8; color: var(--slate-900);
+    font-family: 'DM Sans', sans-serif;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .copy-btn {
+    font-size: 12px; color: var(--orange); background: var(--orange-light);
+    border: 1px solid var(--orange-border); border-radius: 8px;
+    padding: 4px 10px; cursor: pointer; font-weight: 600;
+    font-family: 'Noto Sans TC', 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .copy-btn:active { transform: scale(0.95); }
+
+  .skeleton-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .skeleton {
+    height: 16px; border-radius: 8px;
+    background: linear-gradient(90deg, var(--slate-100) 25%, var(--slate-200) 50%, var(--slate-100) 75%);
+    background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  }
+
+  /* ── Settings panel ── */
+  .panel-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3); z-index: 100;
+    animation: fadeIn 0.2s ease; backdrop-filter: blur(4px);
+  }
+  .panel {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; border-radius: 20px 20px 0 0;
+    padding: 24px 20px calc(24px + var(--safe-bottom));
+    z-index: 101; animation: slideUp 0.3s ease;
+    max-height: 80dvh; overflow-y: auto;
+  }
+  .panel-handle {
+    width: 36px; height: 4px; background: var(--slate-200);
+    border-radius: 2px; margin: 0 auto 18px;
+  }
+  .panel h2 { font-size: 17px; font-weight: 700; margin-bottom: 16px; color: var(--slate-900); }
+  .panel label { display: block; font-size: 13px; font-weight: 600; color: var(--slate-500); margin-bottom: 6px; }
+  .panel input[type="password"], .panel input[type="text"] {
+    width: 100%; padding: 12px 14px; border-radius: 12px;
+    border: 1.5px solid var(--slate-200); font-size: 14px;
+    font-family: 'JetBrains Mono', monospace; color: var(--slate-900);
+    background: var(--slate-50); outline: none; transition: border 0.2s;
+  }
+  .panel input:focus { border-color: var(--orange); }
+  .panel .hint { font-size: 12px; color: var(--slate-300); margin-top: 6px; line-height: 1.5; }
+  .panel .save-btn {
+    width: 100%; padding: 13px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    margin-top: 16px; font-family: 'Noto Sans TC', 'DM Sans', sans-serif;
+  }
+  .panel .save-btn:active { transform: scale(0.98); }
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-dot.on { background: #22c55e; }
+  .status-dot.off { background: #ef4444; }
+
+  /* ── History panel ── */
+  .history-list { max-height: 300px; overflow-y: auto; }
+  .history-item {
+    display: block; width: 100%; text-align: left;
+    padding: 12px 0; border: none; border-bottom: 1px solid var(--slate-100);
+    background: none; cursor: pointer; font-family: inherit;
+  }
+  .history-item:active { background: var(--slate-50); }
+  .history-zh { font-size: 13px; color: var(--slate-700); font-weight: 500; margin-bottom: 3px; }
+  .history-en { font-size: 12px; color: var(--slate-300); font-style: italic; }
+  .history-time { font-size: 11px; color: var(--slate-300); margin-top: 2px; }
+  .history-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  }
+  .clear-history-btn {
+    font-size: 12px; color: #ef4444; background: none; border: none;
+    cursor: pointer; font-weight: 500; font-family: inherit;
+  }
+
+  /* ── No-key banner ── */
+  .key-banner {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1.5px solid #fbbf24; border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; animation: fadeIn 0.4s ease;
+  }
+  .key-banner:active { transform: scale(0.99); }
+  .key-banner-icon { font-size: 24px; flex-shrink: 0; }
+  .key-banner-text { font-size: 13px; color: #92400e; line-height: 1.5; font-weight: 500; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
+    background: var(--slate-900); color: #fff; padding: 10px 20px;
+    border-radius: 12px; font-size: 14px; font-weight: 600; z-index: 200;
+    animation: toastIn 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+
+  /* ── Footer ── */
+  .footer { text-align: center; margin-top: 20px; }
+  .footer p { font-size: 12px; color: var(--slate-300); font-weight: 500; }
+  .footer .pwa-hint {
+    margin-top: 8px; font-size: 12px; color: var(--slate-500);
+    background: var(--slate-50); border-radius: 10px; padding: 10px 14px;
+    border: 1px solid var(--slate-200); line-height: 1.6;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="bg-gradient"></div>
+
+<div class="app" id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🌴</div>
+      <div>
+        <h1>Cali Translator</h1>
+        <p class="sub">中文 → 道地加州英文</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="historyBtn" onclick="toggleHistory()" style="display:none">
+        📋<span class="badge" id="historyBadge">0</span>
+      </button>
+      <button class="icon-btn" id="settingsBtn" onclick="toggleSettings()">⚙️</button>
+    </div>
+  </div>
+
+  <!-- No API key banner -->
+  <div class="key-banner" id="keyBanner" onclick="toggleSettings()">
+    <div class="key-banner-icon">🔑</div>
+    <div class="key-banner-text">尚未設定 API Key，點此設定你的 Claude API Key 即可開始翻譯</div>
+  </div>
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="card-label">
+      <span class="lang-tag">🇹🇼 中文</span>
+      <button class="clear-btn" id="clearBtn" onclick="clearAll()" style="display:none">清除</button>
+    </div>
+    <textarea id="inputText" placeholder="輸入要翻譯的中文⋯" oninput="onInputChange()"></textarea>
+    <div class="input-footer">
+      <span class="char-count" id="charCount">0 字</span>
+      <span class="shortcut-hint">⌘ + Enter 翻譯</span>
+    </div>
+  </div>
+
+  <!-- Translate button -->
+  <button class="translate-btn" id="translateBtn" onclick="doTranslate()" disabled>
+    翻譯成加州英文 🏄‍♂️
+  </button>
+
+  <!-- Output card (hidden initially) -->
+  <div class="card output-card" id="outputCard" style="display:none">
+    <div class="card-label">
+      <span class="lang-tag">🇺🇸 California English</span>
+      <button class="copy-btn" onclick="copyResult()">📋 複製</button>
+    </div>
+    <div class="output-text" id="outputText"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Powered by Claude API · 專為加州口語優化</p>
+    <div class="pwa-hint" id="pwaHint">
+      📲 iPhone 用戶：Safari 分享 → 「加入主畫面」即可像 App 一樣使用
+    </div>
+  </div>
+</div>
+
+<!-- Settings Panel -->
+<div class="panel-overlay" id="settingsOverlay" style="display:none" onclick="toggleSettings()"></div>
+<div class="panel" id="settingsPanel" style="display:none">
+  <div class="panel-handle"></div>
+  <h2>⚙️ 設定</h2>
+  <div>
+    <label for="apiKeyInput">Claude API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+    <p class="hint">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">未設定</span>
+      <br>到 <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--orange)">console.anthropic.com</a> 取得 API Key
+    </p>
+  </div>
+  <button class="save-btn" onclick="saveApiKey()">儲存設定</button>
+</div>
+
+<!-- History Panel -->
+<div class="panel-overlay" id="historyOverlay" style="display:none" onclick="toggleHistory()"></div>
+<div class="panel" id="historyPanel" style="display:none">
+  <div class="panel-handle"></div>
+  <div class="history-header">
+    <h2>📋 翻譯紀錄</h2>
+    <button class="clear-history-btn" onclick="clearHistory()">清除全部</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+const SYSTEM_PROMPT = `You are a translation expert who converts Traditional Chinese (繁體中文) into natural, authentic American English — specifically the casual, friendly style spoken in California.
+
+Rules:
+1. Translate the meaning, NOT word-by-word. Capture the intent and emotion.
+2. Use natural California English: relaxed, warm, direct. Think how a friendly person in LA or SF would say it.
+3. Use common American slang and idioms where appropriate (e.g., "totally", "for sure", "no worries", "legit", "vibe", "lowkey", "honestly", "super", "kinda").
+4. Keep it conversational — avoid stiff, formal, or textbook English.
+5. If the input is a business or professional message, keep it professional but still natural American style (not British, not overly formal).
+6. Preserve the tone: if the Chinese is funny, make it funny. If serious, keep it serious.
+7. Output ONLY the translated English. No explanations, no notes, no alternatives.
+8. If there are multiple possible interpretations, pick the most natural one.`;
+
+let apiKey = localStorage.getItem('cali_api_key') || '';
+let history = JSON.parse(localStorage.getItem('cali_history') || '[]');
+let loading = false;
+
+// ── Init ──
+function init() {
+  updateKeyStatus();
+  updateHistoryUI();
+  if (isStandalone()) {
+    document.getElementById('pwaHint').style.display = 'none';
+  }
+}
+
+function isStandalone() {
+  return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+}
+
+// ── Input handling ──
+function onInputChange() {
+  const val = document.getElementById('inputText').value;
+  document.getElementById('charCount').textContent = val.length + ' 字';
+  document.getElementById('clearBtn').style.display = val ? 'block' : 'none';
+  document.getElementById('translateBtn').disabled = !val.trim() || !apiKey || loading;
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('outputCard').style.display = 'none';
+  onInputChange();
+  document.getElementById('inputText').focus();
+}
+
+// ── Keyboard shortcut ──
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    doTranslate();
+  }
+});
+
+// ── Translation ──
+async function doTranslate() {
+  const input = document.getElementById('inputText').value.trim();
+  if (!input || !apiKey || loading) return;
+
+  loading = true;
+  const btn = document.getElementById('translateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading"><div class="spinner"></div><span>翻譯中⋯</span></div>';
+
+  const outputCard = document.getElementById('outputCard');
+  const outputText = document.getElementById('outputText');
+  outputCard.style.display = 'block';
+  outputText.innerHTML = `
+    <div class="skeleton-wrap">
+      <div class="skeleton" style="width:85%"></div>
+      <div class="skeleton" style="width:65%"></div>
+      <div class="skeleton" style="width:45%"></div>
+    </div>`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: input }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      if (response.status === 401) throw new Error('API Key 無效，請重新設定');
+      if (response.status === 429) throw new Error('請求太頻繁，請稍後再試');
+      throw new Error(err.error?.message || '翻譯失敗 (' + response.status + ')');
+    }
+
+    const data = await response.json();
+    const translated = data.content
+      ?.filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('\n') || '翻譯失敗，請重試';
+
+    outputText.textContent = translated;
+
+    // Save to history
+    history.unshift({
+      zh: input,
+      en: translated,
+      time: new Date().toISOString()
+    });
+    if (history.length > 30) history = history.slice(0, 30);
+    localStorage.setItem('cali_history', JSON.stringify(history));
+    updateHistoryUI();
+
+    // Scroll to result
+    outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  } catch (err) {
+    outputText.textContent = '⚠️ ' + err.message;
+  } finally {
+    loading = false;
+    btn.disabled = false;
+    btn.innerHTML = '翻譯成加州英文 🏄‍♂️';
+    onInputChange();
+  }
+}
+
+// ── Copy ──
+function copyResult() {
+  const text = document.getElementById('outputText').textContent;
+  if (!text || text.startsWith('⚠️')) return;
+
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+  showToast('✓ 已複製到剪貼簿');
+}
+
+// ── Settings ──
+function toggleSettings() {
+  const overlay = document.getElementById('settingsOverlay');
+  const panel = document.getElementById('settingsPanel');
+  const isVisible = panel.style.display !== 'none';
+
+  if (isVisible) {
+    overlay.style.display = 'none';
+    panel.style.display = 'none';
+  } else {
+    document.getElementById('apiKeyInput').value = apiKey;
+    overlay.style.display = 'block';
+    panel.style.display = 'block';
+    // Close history if open
+    document.getElementById('historyOverlay').style.display = 'none';
+    document.getElementById('historyPanel').style.display = 'none';
+  }
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  apiKey = val;
+  localStorage.setItem('cali_api_key', val);
+  updateKeyStatus();
+  toggleSettings();
+  onInputChange();
+  if (val) showToast('✓ API Key 已儲存');
+}
+
+function updateKeyStatus() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const banner = document.getElementById('keyBanner');
+
+  if (apiKey) {
+    dot.className = 'status-dot on';
+    text.textContent = '已設定 (sk-....' + apiKey.slice(-4) + ')';
+    banner.style.display = 'none';
+  } else {
+    dot.className = 'status-dot off';
+    text.textContent = '未設定';
+    banner.style.display = 'flex';
+  }
+}
+
+// ── History ──
+function toggleHistory() {
+  const overlay = document.getElementById('historyOverlay');
+  const panel = document.getElementById('historyPanel');
+  const isVisible = panel.style.display !== 'none';
+
+  if (isVisible) {
+    overlay.style.display = 'none';
+    panel.style.display = 'none';
+  } else {
+    renderHistoryList();
+    overlay.style.display = 'block';
+    panel.style.display = 'block';
+    // Close settings if open
+    document.getElementById('settingsOverlay').style.display = 'none';
+    document.getElementById('settingsPanel').style.display = 'none';
+  }
+}
+
+function renderHistoryList() {
+  const list = document.getElementById('historyList');
+  if (history.length === 0) {
+    list.innerHTML = '<p style="color:#94a3b8;font-size:13px;text-align:center;padding:24px 0">還沒有翻譯紀錄</p>';
+    return;
+  }
+  list.innerHTML = history.map((item, i) => {
+    const d = new Date(item.time);
+    const timeStr = d.getMonth() + 1 + '/' + d.getDate() + ' ' + d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+    return `<button class="history-item" onclick="loadHistory(${i})">
+      <div class="history-zh">${esc(item.zh.slice(0, 50))}${item.zh.length > 50 ? '…' : ''}</div>
+      <div class="history-en">${esc(item.en.slice(0, 60))}${item.en.length > 60 ? '…' : ''}</div>
+      <div class="history-time">${timeStr}</div>
+    </button>`;
+  }).join('');
+}
+
+function loadHistory(index) {
+  const item = history[index];
+  document.getElementById('inputText').value = item.zh;
+  document.getElementById('outputCard').style.display = 'block';
+  document.getElementById('outputText').textContent = item.en;
+  onInputChange();
+  toggleHistory();
+}
+
+function updateHistoryUI() {
+  const btn = document.getElementById('historyBtn');
+  const badge = document.getElementById('historyBadge');
+  if (history.length > 0) {
+    btn.style.display = 'flex';
+    badge.textContent = history.length;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.setItem('cali_history', JSON.stringify(history));
+  updateHistoryUI();
+  toggleHistory();
+  showToast('紀錄已清除');
+}
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+}
+
+// ── Escape HTML ──
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ── Start ──
+init();
+</script>
+
+</body>
+</html>
