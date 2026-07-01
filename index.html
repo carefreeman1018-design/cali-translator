@@ -255,6 +255,77 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   }
 
+  /* ── Clickable words ── */
+  .word {
+    cursor: pointer; border-radius: 4px; padding: 0 2px; margin: 0 -2px;
+    transition: background 0.15s, color 0.15s;
+    display: inline;
+  }
+  .word:hover { background: #fef3c7; }
+  .word:active { background: #fde68a; }
+  .word.active { background: #fde68a; color: var(--orange-dark); font-weight: 600; }
+
+  /* ── Word popup ── */
+  .word-popup-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 150; background: rgba(0,0,0,0.15);
+    animation: fadeIn 0.15s ease;
+  }
+  .word-popup {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + var(--safe-bottom));
+    z-index: 151; animation: slideUp 0.25s ease;
+    max-height: 55dvh; overflow-y: auto;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+  }
+  .word-popup-handle {
+    width: 36px; height: 4px; background: var(--slate-200);
+    border-radius: 2px; margin: 0 auto 14px;
+  }
+  .word-popup-word {
+    font-size: 24px; font-weight: 700; color: var(--orange);
+    font-family: 'DM Sans', sans-serif; margin-bottom: 4px;
+  }
+  .word-popup-phonetic {
+    font-size: 14px; color: var(--slate-500); margin-bottom: 14px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .word-popup-section {
+    margin-bottom: 12px;
+  }
+  .word-popup-label {
+    font-size: 11px; font-weight: 700; color: var(--slate-300);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px;
+  }
+  .word-popup-content {
+    font-size: 15px; line-height: 1.7; color: var(--slate-700);
+  }
+  .word-popup-example {
+    font-size: 14px; line-height: 1.7; color: var(--slate-500);
+    font-style: italic; background: var(--slate-50);
+    border-radius: 10px; padding: 10px 14px;
+    border-left: 3px solid var(--orange-border);
+  }
+  .word-popup-example-zh {
+    font-style: normal; color: var(--slate-700); margin-top: 4px;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .word-popup-speak {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 13px; color: var(--orange); background: var(--orange-light);
+    border: 1px solid var(--orange-border); border-radius: 8px;
+    padding: 4px 10px; cursor: pointer; font-weight: 600;
+    font-family: 'Noto Sans TC', 'DM Sans', sans-serif;
+    margin-left: 8px; vertical-align: middle;
+  }
+  .word-popup-speak:active { transform: scale(0.95); }
+  .word-popup-loading {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 0; color: var(--slate-300); font-size: 14px;
+  }
+  .word-popup-loading .spinner { border-color: rgba(0,0,0,0.1); border-top-color: var(--orange); }
+
   /* ── Footer ── */
   .footer { text-align: center; margin-top: 20px; }
   .footer p { font-size: 12px; color: var(--slate-300); font-weight: 500; }
@@ -368,6 +439,14 @@
 </div>
 
 <!-- Toast -->
+<!-- Word Popup -->
+<div class="word-popup-overlay" id="wordPopupOverlay" style="display:none" onclick="closeWordPopup()"></div>
+<div class="word-popup" id="wordPopup" style="display:none">
+  <div class="word-popup-handle"></div>
+  <div id="wordPopupContent"></div>
+</div>
+
+<!-- Toast -->
 <div class="toast" id="toast" style="display:none"></div>
 
 <script>
@@ -398,6 +477,10 @@ function init() {
   if (isStandalone()) {
     document.getElementById('pwaHint').style.display = 'none';
   }
+  // Auto-focus input so user can type immediately
+  setTimeout(() => {
+    document.getElementById('inputText').focus();
+  }, 300);
 }
 
 function isStandalone() {
@@ -476,7 +559,7 @@ async function doTranslate() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: input }]
@@ -496,7 +579,7 @@ async function doTranslate() {
       .map(c => c.text)
       .join('\n') || '翻譯失敗，請重試';
 
-    outputText.textContent = resultText;
+    renderClickableWords(outputText, resultText);
 
     // Save to history
     history.unshift({
@@ -668,7 +751,7 @@ function loadHistory(index) {
   const item = history[index];
   document.getElementById('inputText').value = item.zh;
   document.getElementById('outputCard').style.display = 'block';
-  document.getElementById('outputText').textContent = item.en;
+  renderClickableWords(document.getElementById('outputText'), item.en);
   translated = true;
   onInputChange();
   toggleHistory();
@@ -708,6 +791,156 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+// ── Clickable Words ──
+let currentFullText = '';
+
+function renderClickableWords(container, text) {
+  currentFullText = text;
+  container.innerHTML = '';
+  // Split keeping whitespace and punctuation structure
+  const parts = text.split(/(\s+)/);
+  parts.forEach(part => {
+    if (/^\s+$/.test(part)) {
+      container.appendChild(document.createTextNode(part));
+    } else {
+      // Split word from trailing punctuation
+      const match = part.match(/^([a-zA-Z'-]+)(.*)$/);
+      if (match) {
+        const span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = match[1];
+        span.onclick = () => onWordClick(match[1], span);
+        container.appendChild(span);
+        if (match[2]) {
+          container.appendChild(document.createTextNode(match[2]));
+        }
+      } else {
+        container.appendChild(document.createTextNode(part));
+      }
+    }
+  });
+}
+
+function onWordClick(word, spanEl) {
+  // Remove previous active state
+  document.querySelectorAll('.word.active').forEach(w => w.classList.remove('active'));
+  spanEl.classList.add('active');
+  openWordPopup(word);
+}
+
+function openWordPopup(word) {
+  const overlay = document.getElementById('wordPopupOverlay');
+  const popup = document.getElementById('wordPopup');
+  const content = document.getElementById('wordPopupContent');
+
+  content.innerHTML = `
+    <div class="word-popup-word">${esc(word)}
+      <button class="word-popup-speak" onclick="speakWord('${esc(word)}')">🔊</button>
+    </div>
+    <div class="word-popup-loading"><div class="spinner"></div><span>查詢中⋯</span></div>
+  `;
+
+  overlay.style.display = 'block';
+  popup.style.display = 'block';
+
+  fetchWordExplanation(word);
+}
+
+function closeWordPopup() {
+  document.getElementById('wordPopupOverlay').style.display = 'none';
+  document.getElementById('wordPopup').style.display = 'none';
+  document.querySelectorAll('.word.active').forEach(w => w.classList.remove('active'));
+}
+
+function speakWord(word) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.rate = 0.85;
+  const voices = speechSynthesis.getVoices();
+  const usVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Samantha'))
+    || voices.find(v => v.lang === 'en-US' && !v.name.includes('Google'))
+    || voices.find(v => v.lang === 'en-US');
+  if (usVoice) u.voice = usVoice;
+  speechSynthesis.speak(u);
+}
+
+async function fetchWordExplanation(word) {
+  if (!apiKey) return;
+
+  const prompt = `The user is a Traditional Chinese speaker learning casual California English. They encountered the word "${word}" in this sentence:
+
+"${currentFullText}"
+
+Respond in this EXACT JSON format, nothing else:
+{
+  "phonetic": "IPA pronunciation",
+  "pos": "part of speech in Chinese (e.g. 名詞, 動詞, 形容詞, 副詞, 片語)",
+  "meaning": "Chinese meaning in this context (繁體中文, concise)",
+  "nuance": "Brief note in 繁體中文 about California/casual usage or tone, max 1 sentence",
+  "example": "A natural California English example sentence using this word",
+  "example_zh": "繁體中文 translation of the example"
+}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const raw = data.content?.find(c => c.type === 'text')?.text || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('parse');
+    const info = JSON.parse(jsonMatch[0]);
+
+    const content = document.getElementById('wordPopupContent');
+    content.innerHTML = `
+      <div class="word-popup-word">${esc(word)}
+        <button class="word-popup-speak" onclick="speakWord('${esc(word)}')">🔊</button>
+      </div>
+      <div class="word-popup-phonetic">${esc(info.phonetic || '')}・${esc(info.pos || '')}</div>
+
+      <div class="word-popup-section">
+        <div class="word-popup-label">中文意思</div>
+        <div class="word-popup-content">${esc(info.meaning || '')}</div>
+      </div>
+
+      ${info.nuance ? `<div class="word-popup-section">
+        <div class="word-popup-label">加州用法</div>
+        <div class="word-popup-content">${esc(info.nuance)}</div>
+      </div>` : ''}
+
+      <div class="word-popup-section">
+        <div class="word-popup-label">例句</div>
+        <div class="word-popup-example">
+          ${esc(info.example || '')}
+          <div class="word-popup-example-zh">${esc(info.example_zh || '')}</div>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    document.getElementById('wordPopupContent').innerHTML = `
+      <div class="word-popup-word">${esc(word)}
+        <button class="word-popup-speak" onclick="speakWord('${esc(word)}')">🔊</button>
+      </div>
+      <div class="word-popup-section">
+        <div class="word-popup-content" style="color:var(--slate-300)">查詢失敗，請再試一次</div>
+      </div>
+    `;
+  }
 }
 
 // ── Start ──
